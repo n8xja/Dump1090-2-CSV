@@ -1,0 +1,97 @@
+import urllib2              #for Python 2.7
+
+import json
+import os
+import time
+from time import gmtime, strftime
+from datetime import datetime
+
+url = 'http://URL/data/aircraft.json'        # where to get the aircraft.json
+ADSBDir = '/mnt/backups/'                                            # where to save the CSV files
+
+headers = {'Cache-Control':'no-cache','Pragma':'no-cache','If-Modified-Since':'Sat, 1 Jan 2000 00:00:00 GMT',}
+
+while 1:
+
+    request=urllib2.Request(url, None, headers)
+    response = urllib2.urlopen(request)
+
+    data = response.read().decode('utf8')
+    jsonPlane = json.loads(data)
+
+    # CSV file named as dump1090_YY-MM-DD.csv using UTC time
+    fileName = ADSBDir+'dump1090_'+datetime.utcnow().strftime("%Y-%m-%d")+'.csv'
+
+    if os.path.isfile(fileName):
+        ADSBFile = open(fileName, 'a')
+    else:
+        ADSBFile = open(fileName, 'w')
+        # Align once rest of code is correct
+        # ADSBFile.write('UTC,icao,flight,spd,lat,lon,altitude,mlat\n')       #header
+
+    for plane in jsonPlane['aircraft']:
+
+        resultStr = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") + ','
+
+        if int(plane['seen']) <= 1:                         # planes that have been seen within the last one second
+            if 'seen_pos' in plane:                         # if it's been seen, let's save some data
+
+                # if additional data is wanted, add it below and adjust the header
+
+                if 'hex' in plane:
+                    resultStr = resultStr +str(plane['hex']) + ','
+                else:
+                    resultStr = ','
+
+                if 'flight' in plane:
+                    resultStr = resultStr + str(plane['flight']).strip() + ','
+                else:
+                    resultStr = resultStr + ','
+
+                if 'gs' in plane:
+                    resultStr = resultStr + str(plane['gs']) + ','
+                else:
+                    resultStr = resultStr + ','
+
+                if 'lat' in plane:
+                    resultStr = resultStr + str(plane['lat']) + ','
+                else:
+                    resultStr = resultStr + ','
+
+                if 'lon' in plane:
+                    resultStr = resultStr + str(plane['lon']) + ','
+                else:
+                    resultStr = resultStr +','
+
+                if 'alt_baro' in plane:
+                    resultStr = resultStr + str(plane['alt_baro']) + ','
+                else:
+                    resultStr = resultStr +','
+
+                if 'squawk' in plane:
+                    resultStr = resultStr + str(plane['squawk']) + ','
+                else:
+                    resultStr = resultStr +','
+
+                if 'track' in plane:
+                    resultStr = resultStr + str(plane['track']) + ','
+                else:
+                    resultStr = resultStr +','
+
+                if 'emergency' in plane:
+                    resultStr = resultStr + str(plane['emergency']) 
+                else:
+                    resultStr = resultStr 
+
+             #  if 'mlat' in plane:
+             #      resultStr = resultStr + 'True'
+             #   else:
+             #       resultStr = resultStr + 'False'
+
+                ADSBFile.write(resultStr+'\n')
+
+                # comment the below if you do not want to see on the console what is being saved
+               # print (resultStr)
+    ADSBFile.close()
+    time.sleep(1)
+
